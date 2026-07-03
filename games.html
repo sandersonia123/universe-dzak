@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>成为侦探社社员后的一天 - universe of dzak</title>
+<link rel="stylesheet" href="style.css">
+<style>
+/* ===== Game Layout ===== */
+.game-wrapper { display: flex; gap: 24px; align-items: flex-start; margin-top: 16px; }
+
+.dialog-panel {
+  flex: 3; background: var(--card); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 28px; min-height: 360px;
+  display: flex; flex-direction: column;
+}
+.dialog-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+  padding-bottom: 16px; border-bottom: 1.5px solid var(--border);
+}
+.dialog-avatar {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--accent); color: #fff; display: flex;
+  align-items: center; justify-content: center; font-size: 1rem;
+  font-weight: 700; flex-shrink: 0;
+}
+.dialog-speaker { font-weight: 600; color: var(--primary); font-size: 1rem; }
+.dialog-text {
+  font-size: 1.05rem; line-height: 2; color: var(--text);
+  white-space: pre-wrap; flex: 1;
+}
+.dialog-text .highlight { color: var(--accent); font-weight: 500; }
+
+.choice-panel {
+  flex: 1.4; background: var(--card); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 24px; position: sticky; top: 80px;
+}
+.choice-panel-title {
+  font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--text-light); margin-bottom: 16px; font-weight: 600;
+}
+.choice-list-game { display: flex; flex-direction: column; gap: 10px; }
+.choice-btn-game {
+  padding: 14px 18px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--card); cursor: pointer;
+  font-size: 0.92rem; text-align: left; transition: all 0.2s;
+  color: var(--text); line-height: 1.5;
+}
+.choice-btn-game:hover {
+  border-color: var(--accent); background: var(--accent-bg); color: var(--accent);
+}
+.choice-btn-game:active { transform: scale(0.98); }
+
+/* ===== Ending ===== */
+.ending-card {
+  text-align: center; padding: 32px 20px;
+}
+.ending-label {
+  display: inline-block; font-size: 0.8rem; font-weight: 700;
+  letter-spacing: 3px; color: var(--accent); border: 1.5px solid var(--accent);
+  padding: 6px 20px; border-radius: 20px; margin-bottom: 20px;
+}
+.ending-text {
+  font-size: 1.1rem; line-height: 2; color: var(--text);
+  max-width: 560px; margin: 0 auto;
+}
+.ending-actions { margin-top: 28px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* ===== Start Screen ===== */
+.start-screen {
+  text-align: center; padding: 48px 20px;
+}
+.start-screen .story-icon {
+  font-size: 2.4rem; margin-bottom: 16px; color: var(--accent);
+}
+.start-screen h3 {
+  font-size: 1.6rem; color: var(--primary); font-weight: 600;
+  margin-bottom: 8px;
+}
+.start-screen .subtitle {
+  color: var(--text-light); font-size: 0.95rem; margin-bottom: 28px;
+}
+.ending-tracker {
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  margin-top: 24px;
+}
+.ending-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 20px; font-size: 0.82rem;
+  border: 1.5px solid var(--border); color: var(--text-light);
+  transition: all 0.3s;
+}
+.ending-badge.found {
+  border-color: var(--accent); color: var(--accent); background: var(--accent-bg);
+}
+.ending-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+.ending-badge.found .dot { background: var(--accent); }
+
+/* ===== Path History ===== */
+.path-bar {
+  display: flex; gap: 4px; flex-wrap: wrap; margin-top: 16px;
+  padding-top: 16px; border-top: 1px solid var(--border);
+}
+.path-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: var(--accent-bg);
+  border: 1.5px solid var(--accent);
+}
+.path-dot.active { background: var(--accent); }
+
+/* ===== Choices Inline (used in path view) ===== */
+.choices-inline { display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.78rem; color: var(--text-light); }
+.choices-inline span { background: var(--accent-bg); padding: 2px 8px; border-radius: 4px; }
+
+/* ===== Node Progress & Badge ===== */
+.node-progress-bar {
+  display: flex; align-items: center; gap: 8px; margin-top: 4px;
+}
+.node-progress-track {
+  flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+}
+.node-progress-fill {
+  height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.4s ease;
+}
+.node-badge-earned {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 20px; font-size: 0.82rem; font-weight: 600;
+  background: #fef3c7; color: #92400e; border: 1.5px solid #f59e0b;
+  margin-top: 8px; animation: badgePop 0.5s ease;
+}
+@keyframes badgePop {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .game-wrapper { flex-direction: column; }
+  .choice-panel { position: static; }
+  .dialog-panel { min-height: 200px; padding: 20px; }
+  .choice-panel { padding: 20px; }
+  .start-screen h3 { font-size: 1.2rem; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="navbar-brand">dzak</a>
+    <button class="nav-toggle" onclick="toggleNav()">三</button>
+    <div class="navbar-links" id="navLinks">
+      <a href="index.html">首页</a>
+      <a href="images.html">图像</a>
+      <a href="novels.html">小说</a>
+      <a href="games.html" class="active">剧情</a>
+    </div>
+    <div class="navbar-right">
+      <span class="user-badge" id="userBadge" onclick="openLoginModal()">未登录</span>
+    </div>
+  </div>
+</nav>
+
+<div class="page-content">
+  <div class="container">
+    <div class="section-header">
+      <h2>互动剧情</h2>
+      <p>选择你的道路</p>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="startScreen" class="start-screen" style="display:none">
+      <div class="card" style="max-width:600px;margin:0 auto;padding:40px 32px">
+        <div class="story-icon">&#9733;</div>
+        <h3>成为侦探社社员后的一天</h3>
+        <button class="btn btn-primary" onclick="startGame()" style="font-size:1rem;padding:12px 40px">开始游戏</button>
+        <div class="ending-tracker" id="endingTracker"></div>
+        <div style="margin-top:16px;max-width:320px;margin-left:auto;margin-right:auto" id="startNodeProgress"></div>
+      </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameScreen" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="showStart()">← 返回</button>
+        <button class="btn btn-outline btn-sm" onclick="startGame()">重新开始</button>
+      </div>
+      <div class="game-wrapper">
+        <div class="dialog-panel" id="dialogPanel">
+          <div class="dialog-header">
+            <div class="dialog-avatar">太</div>
+            <div class="dialog-speaker">太宰治</div>
+          </div>
+          <div class="dialog-text" id="dialogText"></div>
+          <div class="path-bar" id="pathBar"></div>
+        </div>
+        <div class="choice-panel" id="choicePanel">
+          <div class="choice-panel-title">—— 选择 ——</div>
+          <div id="nodeProgress" style="font-size:0.78rem;color:var(--text-light);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)"></div>
+          <div class="choice-list-game" id="choiceList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comments -->
+    <div class="comment-section">
+      <h3>留言板</h3>
+      <div class="comment-form">
+        <input type="text" id="triviaCommentInput" placeholder="写一条留言……">
+        <button class="btn btn-accent btn-sm" onclick="addTriviaComment()">发送</button>
+      </div>
+      <div class="comment-list" id="triviaComments"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Login Modal ===== -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('loginModal')">X</button>
+    <h2>登录</h2>
+    <div class="form-group"><label>用户名</label><input type="text" id="loginUser" placeholder="输入用户名"></div>
+    <div class="form-group">
+      <label>开发者密钥 <span style="font-weight:400;color:var(--text-light)">（可选）</span></label>
+      <input type="password" id="loginDevKey" placeholder="输入开发者密钥">
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="loginAsGuest()">游客浏览</button>
+      <button class="btn btn-primary" onclick="login()">进入</button>
+    </div>
+    <p id="loginError" style="color:#dc2626;font-size:0.85rem;margin-top:10px;display:none"></p>
+  </div>
+</div>
+
+<footer>
+  <div class="container">universe of dzak &mdash; 所有数据存储在云端 Supabase</div>
+</footer>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* ================================================================
+   配置
+   ================================================================ */
+const SUPABASE_URL = 'https://wnrakpknwtrpufqiammy.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InducmFrcGtud3RycHVmcWlhbW15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNDk2NTIsImV4cCI6MjA5ODYyNTY1Mn0.nY_OMMs9PvZ0mLuCZ8NyouHob9tApX4RgCPkcWWyH0Q';
+const DEV_EMAIL = 'dev@dzak.local';
+const SB_AUTH = SUPABASE_URL + '/auth/v1';
+const SB_REST = SUPABASE_URL + '/rest/v1';
+
+function sbHeaders() {
+  const h = { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' };
+  const token = localStorage.getItem('dzak_sb_token');
+  if (token) h['Authorization'] = 'Bearer ' + token;
+  return h;
+}
+
+async function sbSelect(table, opts) {
+  let url = SB_REST + '/' + table + '?select=*';
+  if (opts && opts.order) url += '&order=' + opts.order;
+  const r = await fetch(url, { headers: sbHeaders() });
+  if (!r.ok) throw new Error('查询失败: ' + r.status);
+  return r.json();
+}
+
+async function sbInsert(table, data) {
+  const r = await fetch(SB_REST + '/' + table, {
+    method: 'POST',
+    headers: { ...sbHeaders(), 'Prefer': 'return=representation' },
+    body: JSON.stringify(data)
+  });
+  if (!r.ok) { const e = await r.json(); throw new Error(e.message || '插入失败'); }
+  return r.json();
+}
+
+async function sbSignIn(password) {
+  const r = await fetch(SB_AUTH + '/token?grant_type=password', {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: DEV_EMAIL, password: password })
+  });
+  const d = await r.json();
+  if (d.access_token) {
+    localStorage.setItem('dzak_sb_token', d.access_token);
+    localStorage.setItem('dzak_sb_refresh', d.refresh_token);
+    return true;
+  }
+  return false;
+}
+
+async function sbRestoreSession() {
+  const rt = localStorage.getItem('dzak_sb_refresh');
+  if (!rt) return false;
+  const r = await fetch(SB_AUTH + '/token?grant_type=refresh_token', {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: rt })
+  });
+  const d = await r.json();
+  if (d.access_token) {
+    localStorage.setItem('dzak_sb_token', d.access_token);
+    localStorage.setItem('dzak_sb_refresh', d.refresh_token);
+    return true;
+  }
+  localStorage.removeItem('dzak_sb_token');
+  localStorage.removeItem('dzak_sb_refresh');
+  return false;
+}
+
+/* ====== 共享工具 ====== */
+function getData(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch(e) { return d; } }
+function setData(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+function now() { return new Date().toLocaleString('zh-CN'); }
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+const DEVELOPER_KEY = 'dzak2024';
+function getUsers() { return getData('dzak_users', []); }
+function setUsers(u) { setData('dzak_users', u); }
+function getSession() { return getData('dzak_session', { user: null, role: null }); }
+function setSession(s) { setData('dzak_session', s); }
+function currentUser() { const s = getSession(); return s.user; }
+function isDeveloper() { return getSession().role === 'developer'; }
+
+function updateBadge() {
+  const s = getSession();
+  if (!s.user) { document.getElementById('userBadge').textContent = '未登录'; return; }
+  document.getElementById('userBadge').textContent = s.role === 'developer' ? s.user + ' [开发]' : s.user + ' [访客]';
+}
+
+async function login() {
+  const user = document.getElementById('loginUser').value.trim();
+  const devKey = document.getElementById('loginDevKey').value.trim();
+  const err = document.getElementById('loginError');
+  if (!user) { err.textContent = '请输入用户名'; err.style.display = 'block'; return; }
+  const isDev = devKey === DEVELOPER_KEY;
+  if (isDev) {
+    const ok = await sbSignIn(devKey);
+    if (!ok) { err.textContent = '密钥验证失败'; err.style.display = 'block'; return; }
+  }
+  const users = getUsers();
+  users.push({ username: user, role: isDev ? 'developer' : 'guest' });
+  setUsers(users);
+  const role = isDev ? 'developer' : 'guest';
+  setSession({ user, role });
+  err.style.display = 'none';
+  closeModal('loginModal');
+  updateBadge();
+  if (isDev) toast('开发者模式', 'success');
+  else toast('游客模式 · 浏览中');
+}
+
+function loginAsGuest() { setSession({ user: 'guest', role: 'guest' }); closeModal('loginModal'); updateBadge(); toast('游客模式 · 浏览中'); }
+function openLoginModal() { document.getElementById('loginUser').value = ''; document.getElementById('loginDevKey').value = ''; document.getElementById('loginError').style.display = 'none'; openModal('loginModal'); }
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+document.addEventListener('click', function(e) {
+  document.querySelectorAll('.modal-overlay.active').forEach(m => { if (e.target === m) m.classList.remove('active'); });
+});
+
+function toast(msg, type) {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg; c.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+function toggleNav() { document.getElementById('navLinks').classList.toggle('open'); }
+document.addEventListener('click', function(e) {
+  const nav = document.getElementById('navLinks');
+  const t = document.querySelector('.nav-toggle');
+  if (!nav.contains(e.target) && !t.contains(e.target)) nav.classList.remove('open');
+});
+
+/* ================================================================
+   故事数据
+   ================================================================ */
+const STORY = {
+  title: '成为侦探社社员后的一天',
+  start: 'n1',
+  nodes: {
+    n1: {
+      text: '在前不久刚刚脱离了无业游民的身份，太宰治今天想做什么？',
+      choices: [
+        { text: '去河边', next: 'n2' },
+        { text: '去Lupin酒吧', next: 'n3' },
+        { text: '去侦探社', next: 'n4' }
+      ]
+    },
+    n2: {
+      text: '正值正午，河面上反射出粼粼的波光，太宰治坐在草坪上发着呆。他在想什么呢？',
+      choices: [
+        { text: '之前就是在这里被敦救上来的吧', next: 'n5' },
+        { text: '好无聊，想跳下去', next: 'n6' }
+      ]
+    },
+    n3: {
+      text: '来lupin酒吧并不是无心之举，太宰治明显在寻找着什么。他在找什么？',
+      choices: [
+        { text: '之前掉在附近的钱包', next: 'n7' },
+        { text: '一个黑衣男子？', next: 'n8' }
+      ]
+    },
+    n4: {
+      text: '一进门就被国木田当头斥责自己连旷三天班的事，太凶了吧？太宰治像往常一样打着哈哈躲避精神和物理攻击。国木田说要么去接外出任务，要么处理文书工作，做哪个呢？',
+      choices: [
+        { text: '外出', next: 'n9' },
+        { text: '处理文书工作', next: 'n10' },
+        { text: '工作什么的太讨厌了，一个也不想做', next: 'n11' }
+      ]
+    },
+    n5: {
+      text: '说到敦，那孩子真的很努力，自己的眼光果然没有错。新双黑是太宰治从n年前就开始策划的一盘棋，另一个棋子怎么样呢？',
+      choices: [
+        { text: '他是个好孩子', next: 'n12' },
+        { text: '他真的很难教养', next: 'n13' },
+        { text: '他还有别的身份吗？', next: 'n14' }
+      ]
+    },
+    n6: {
+      text: '天气晴朗，是个自杀的好日子。真的要死吗？',
+      choices: [
+        { text: '自己游上来', next: 'n15' },
+        { text: '"太宰先生！！" 原来是敦君来救自己了', next: 'n5' }
+      ]
+    },
+    n7: {
+      text: '虽然很不想承认，但钱包作为承载了一些回忆的旧物，太宰治还是很想找到它的。在酒吧附近的巷子里找到了之前掉落的钱包。要做什么？',
+      choices: [
+        { text: '打开看看', next: 'n16' },
+        { text: '塞进口袋里', next: 'n17' }
+      ]
+    },
+    n8: {
+      text: '一个黑衣男子路过此地。太宰治为什么知道他会出现……？',
+      choices: [
+        { text: '今天也是无酒精饮食吗？', next: 'n18' },
+        { text: '碰巧遇到而已', next: 'n19' }
+      ]
+    },
+    n9: {
+      text: '确实有一件需要外出做的事。太宰治消失在巷子里，片刻后在lupin酒吧出现了。来这里并不是无心之举，太宰治明显在寻找着什么。他在找什么？',
+      choices: [
+        { text: '之前掉在附近的钱包', next: 'n7' },
+        { text: '一个黑衣男子？', next: 'n8' }
+      ]
+    },
+    n10: {
+      text: '粗略浏览了一下，也没有什么重要的事。',
+      choices: [
+        { text: '发呆', next: 'n30' },
+        { text: '还是要认真工作', next: 'n31' }
+      ]
+    },
+    n11: {
+      text: '太宰治找了个机会溜了出去。他消失在巷子里，片刻后在lupin酒吧出现了。来这里并不是无心之举，太宰治明显在寻找着什么。他在找什么？',
+      choices: [
+        { text: '之前掉在附近的钱包', next: 'n7' },
+        { text: '一个黑衣男子？', next: 'n8' }
+      ]
+    },
+    n12: {
+      text: '他是个好孩子。日日夜夜为达成自己的命令努力练习十几种异能招式，就算没有功劳也有苦劳吧。',
+      choices: [
+        { text: '去看看他吧', next: 'n3' },
+        { text: '安慰自己的借口罢了', next: 'n20' }
+      ]
+    },
+    n13: {
+      text: '他真的很难教养。总是不听自己的话擅自行动，差点搞砸好几次任务，太宰治的新部下可是比他强多了。这是太宰治真实的想法吗？',
+      choices: [
+        { text: '是的', next: 'n21' },
+        { text: '不是', next: 'n22' },
+        { text: '拒绝回答', next: 'n14' }
+      ]
+    },
+    n14: {
+      text: '他还有别的身份。他是一条呼之即来挥之即去的狗，一个被精心培养随意使用的工具，太宰治唯一的学生，在充盈着霉味和血腥味的夜里，他扮演了更多角色。',
+      choices: [
+        { text: '………', next: 'ending1' }
+      ]
+    },
+    n15: {
+      text: '泡了半天，太宰治自己游上来了。没想到太宰治会游泳，不过也不奇怪，此人水性差的话，也不至于每次跳河自杀都失败了。接下来他要做什么？',
+      choices: [
+        { text: '回宿舍换衣服', next: 'n24' },
+        { text: '去吃点东西', next: 'n25' }
+      ]
+    },
+    n16: {
+      text: '在黑手党的时候，太宰治常常把钱包给芥川让他跑腿买各种东西。其实这就是一个很普通的钱包，毕竟太宰治不会在里面夹别的东西。现在要做什么？',
+      choices: [
+        { text: '再等等', next: 'n8' },
+        { text: '回宿舍吧', next: 'n24' }
+      ]
+    },
+    n17: {
+      text: '看来是醉翁之意不在酒。太宰治难得别扭了一回，原来一开始就不是奔着钱包来的。为什么不直截了当一点呢？',
+      choices: [
+        { text: '有不能说出来的理由', next: 'ending1' },
+        { text: '真的只是捡钱包而已，里面还有钱呢', next: 'n26' }
+      ]
+    },
+    n18: {
+      text: '在神户酒吧，芥川曾一把抢过太宰治手里的电气白兰一饮而尽，一分钟后就倒在桌上不省人事。几年过去了，看来芥川还是学不会喝酒。与太宰治相比，芥川是个单纯的人，太宰治为他花费的心思明显超过了培养新双黑所需要的，为什么？',
+      choices: [
+        { text: '玩玩而已', next: 'n27' },
+        { text: '拒绝回答', next: 'ending1' }
+      ]
+    },
+    n19: {
+      text: '那真的很碰巧了，毕竟这样的事已经发生了很多次。接下来做什么？',
+      choices: [
+        { text: '回宿舍', next: 'n24' },
+        { text: '去吃点东西', next: 'n25' }
+      ]
+    },
+    n20: {
+      text: '嘴上说着是安慰自己的借口，但太宰治心里清楚，他并非真的这样认为。只是有些心思，连自己都不愿意直面罢了。',
+      choices: [
+        { text: '………', next: 'ending2' }
+      ]
+    },
+    n21: {
+      text: '嘛，为了更重要的计划，现在还有需要用到他的地方，就忍忍吧。敦又在唠叨了，接下来做什么？',
+      choices: [
+        { text: '回宿舍换衣服', next: 'n24' },
+        { text: '去吃点东西', next: 'n25' }
+      ]
+    },
+    n22: {
+      text: '看来太宰治是个内心温柔的人。为什么明明不这样想却要这样说？',
+      choices: [
+        { text: '真实情况不想说', next: 'ending1' },
+        { text: '怕他太狂了', next: 'n28' }
+      ]
+    },
+    n24: {
+      text: '回到自己的房间。今天发生了不少事，但此刻房间里只有安静。太宰治躺在床上，盯着天花板，任由思绪飘散。',
+      choices: [
+        { text: '一天结束了', next: 'ending3' }
+      ]
+    },
+    n25: {
+      text: '吃到了最爱的蟹肉煲，一天的疲惫就这样洗去了。（疲惫吗？）',
+      choices: [
+        { text: '回宿舍吧', next: 'ending3' }
+      ]
+    },
+    n26: {
+      text: '对于侦探社社员来说，确实需要好好保护自己的薪水。接下来干什么？',
+      choices: [
+        { text: '回宿舍', next: 'n24' },
+        { text: '去吃点东西', next: 'n25' }
+      ]
+    },
+    n27: {
+      text: '太宰治见过的奇人不少，这样让他头疼的还是头一位，该说是猎奇心理吗？既然如此的话，也没必要想太多了。接下来干什么？',
+      choices: [
+        { text: '回宿舍', next: 'n24' },
+        { text: '去吃点东西', next: 'n25' }
+      ]
+    },
+    n28: {
+      text: '果然是斯巴达式教育，太宰治认为打压对芥川的成长有益吧。但一直如此的话，可能会错过很多东西。',
+      choices: [
+        { text: '（我知道）', next: 'n29' },
+        { text: '这是必要的牺牲', next: 'ending2' }
+      ]
+    },
+    n29: {
+      text: '也许是没办法的事，太宰治也并非无所不能。不要想这些事了。',
+      choices: [
+        { text: '回宿舍吧', next: 'ending3' }
+      ]
+    },
+    n30: {
+      text: '太宰治深谙浑水摸鱼之道，很快到了下班时间。其实他今天本来有打算，但思考了一番还是算了。',
+      choices: [
+        { text: '明天再说吧', next: 'ending1' }
+      ]
+    },
+    n31: {
+      text: '难得工作，得到国木田君略显浮夸的惊叹。如果所有事都像文书工作一样认真做就有结果就好了。接下来干什么？',
+      choices: [
+        { text: '回宿舍', next: 'n24' },
+        { text: '去吃点东西', next: 'n25' }
+      ]
+    }
+  },
+  endings: {
+    ending1: {
+      title: '结局1',
+      text: '有些时候沉默也是一种回答，早就料到太宰治不会说明，因为这种话，或许要等对方先开口吧。'
+    },
+    ending2: {
+      title: '结局2',
+      text: '不想去面对也不愿再提起，看清对方的心轻而易举，看清自己的心还要多久？'
+    },
+    ending3: {
+      title: '结局3',
+      text: '回到自己的房间，意味着这一天即将过去了，太宰治度过了平平无奇的一天。'
+    }
+  }
+};
+
+/* ================================================================
+   游戏引擎
+   ================================================================ */
+const TOTAL_NODES = Object.keys(STORY.nodes).length;
+let gameState = { path: [] };
+
+function getVisitedNodes() {
+  return getData('dzak_visited_nodes', []);
+}
+
+function saveVisitedNode(id) {
+  const visited = getVisitedNodes();
+  if (!visited.includes(id)) {
+    visited.push(id);
+    setData('dzak_visited_nodes', visited);
+  }
+}
+
+function isAllNodesVisited() {
+  return getVisitedNodes().length >= TOTAL_NODES;
+}
+
+function renderNodeProgress() {
+  const visited = getVisitedNodes();
+  const pct = Math.min(100, Math.round(visited.length / TOTAL_NODES * 100));
+  const allDone = visited.length >= TOTAL_NODES;
+  const html =
+    '<div style="display:flex;justify-content:space-between">' +
+    '<span>节点探索 ' + visited.length + '/' + TOTAL_NODES + '</span>' +
+    (allDone ? '<span style="color:#f59e0b;font-weight:600">★ 全收集</span>' : '') +
+    '</div>' +
+    '<div class="node-progress-bar">' +
+    '<div class="node-progress-track"><div class="node-progress-fill" style="width:' + pct + '%"></div></div>' +
+    '<span style="font-size:0.72rem;color:var(--text-light);min-width:32px;text-align:right">' + pct + '%</span>' +
+    '</div>' +
+    (allDone ? '<div class="node-badge-earned">&#9733; 全节点探索者</div>' : '');
+  const el = document.getElementById('nodeProgress');
+  if (el) el.innerHTML = html;
+  const startEl = document.getElementById('startNodeProgress');
+  if (startEl) startEl.innerHTML = allDone ? html : '';
+}
+
+function getFoundEndings() {
+  return getData('dzak_endings', []);
+}
+
+function saveEnding(id) {
+  const found = getFoundEndings();
+  if (!found.includes(id)) {
+    found.push(id);
+    setData('dzak_endings', found);
+  }
+}
+
+function renderEndingTracker() {
+  const found = getFoundEndings();
+  const total = Object.keys(STORY.endings).length;
+  const ids = Object.keys(STORY.endings);
+  document.getElementById('endingTracker').innerHTML = ids.map(id => {
+    const isFound = found.includes(id);
+    return '<span class="ending-badge' + (isFound ? ' found' : '') + '">' +
+      '<span class="dot"></span>' + STORY.endings[id].title +
+      '</span>';
+  }).join('');
+}
+
+function showStart() {
+  document.getElementById('gameScreen').style.display = 'none';
+  document.getElementById('startScreen').style.display = 'block';
+  renderEndingTracker();
+  renderNodeProgress();
+}
+
+function startGame() {
+  gameState = { path: ['n1'] };
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('gameScreen').style.display = 'block';
+  saveVisitedNode('n1');
+  renderNodeProgress();
+  renderNode('n1');
+}
+
+function renderNode(nodeId) {
+  const node = STORY.nodes[nodeId];
+  if (!node) return;
+
+  saveVisitedNode(nodeId);
+  renderNodeProgress();
+
+  document.getElementById('dialogText').innerHTML = escHtml(node.text);
+
+  // Path bar
+  const pathHtml = gameState.path.map((id, i) => {
+    const isCurrent = i === gameState.path.length - 1;
+    const isEnding = id.startsWith('ending');
+    if (isEnding) return '';
+    return '<span class="path-dot' + (isCurrent ? ' active' : '') + '" title="' + id + '"></span>';
+  }).filter(Boolean).join('');
+  document.getElementById('pathBar').innerHTML = pathHtml ? '<span style="font-size:0.72rem;color:var(--text-light);margin-right:6px">路径</span>' + pathHtml : '';
+
+  // Choices
+  const choiceList = document.getElementById('choiceList');
+  if (!node.choices || node.choices.length === 0) {
+    choiceList.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-light);font-size:0.85rem">— 终 —</div>';
+    return;
+  }
+
+  choiceList.innerHTML = node.choices.map((c, i) =>
+    '<button class="choice-btn-game" onclick="makeChoice(' + i + ')">→ ' + escHtml(c.text) + '</button>'
+  ).join('');
+}
+
+function makeChoice(index) {
+  const currentNode = STORY.nodes[gameState.path[gameState.path.length - 1]];
+  if (!currentNode || !currentNode.choices || index >= currentNode.choices.length) return;
+
+  const choice = currentNode.choices[index];
+  const next = choice.next;
+
+  if (next.startsWith('ending')) {
+    gameState.path.push(next);
+    saveEnding(next);
+    renderEnding(next);
+    renderNodeProgress();
+  } else {
+    gameState.path.push(next);
+    renderNode(next);
+  }
+}
+
+function renderEnding(endingId) {
+  const ending = STORY.endings[endingId];
+  if (!ending) return;
+
+  document.getElementById('dialogText').innerHTML =
+    '<div class="ending-card">' +
+    '<div class="ending-label">' + escHtml(ending.title) + '</div>' +
+    '<div class="ending-text">' + escHtml(ending.text) + '</div>' +
+    '</div>';
+
+  document.getElementById('pathBar').innerHTML = '';
+
+  document.getElementById('choiceList').innerHTML =
+    '<div style="text-align:center;padding:8px 0">' +
+    '<button class="btn btn-primary" onclick="startGame()" style="margin-bottom:8px;width:100%">重新开始</button>' +
+    '<button class="btn btn-ghost btn-sm" onclick="showStart()">返回首页</button>' +
+    '</div>';
+}
+
+/* ====== 留言 ====== */
+async function getTriviaComments() {
+  try { const data = await sbSelect('comments', { order: 'created_at.desc' }); return data.filter(c => c.page === 'trivia'); }
+  catch(e) { console.error(e); return []; }
+}
+
+async function renderTriviaComments() {
+  const list = document.getElementById('triviaComments');
+  const comments = await getTriviaComments();
+  if (!comments.length) { list.innerHTML = '<div class="empty-state"><p>暂无留言</p></div>'; return; }
+  list.innerHTML = comments.map(c => '<div class="comment"><span class="user">' + escHtml(c.user_name) + '</span><span class="time">' + c.time + '</span><div class="text">' + escHtml(c.text) + '</div></div>').join('');
+}
+
+async function addTriviaComment() {
+  const input = document.getElementById('triviaCommentInput');
+  const text = input.value.trim();
+  if (!text) return;
+  try {
+    await sbInsert('comments', { page: 'trivia', user_name: currentUser() || '匿名', text, time: now() });
+    input.value = '';
+    await renderTriviaComments();
+    toast('留言已发布', 'success');
+  } catch(e) { toast('发布失败: ' + e.message, 'error'); }
+}
+
+/* ====== 初始化 ====== */
+(async function init() {
+  await sbRestoreSession();
+  updateBadge();
+  renderEndingTracker();
+  showStart();
+  await renderTriviaComments();
+})();
+</script>
+</body>
+</html>

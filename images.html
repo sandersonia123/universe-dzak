@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>图像检索 - universe of dzak</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="navbar-brand">dzak</a>
+    <button class="nav-toggle" onclick="toggleNav()">三</button>
+    <div class="navbar-links" id="navLinks">
+      <a href="index.html">首页</a>
+      <a href="images.html" class="active">图像</a>
+      <a href="novels.html">小说</a>
+      <a href="games.html">剧情</a>
+    </div>
+    <div class="navbar-right">
+      <span class="user-badge" id="userBadge" onclick="openLoginModal()">未登录</span>
+    </div>
+  </div>
+</nav>
+
+<div class="page-content">
+  <div class="container">
+    <div class="section-header">
+      <h2>图像检索</h2>
+      <p>上传并命名图像，按名称或分类检索</p>
+    </div>
+
+    <div class="search-bar">
+      <input type="search" id="imageSearch" placeholder="搜索图像名称…" oninput="renderImages()">
+      <button class="btn btn-accent" onclick="openUploadModal()" id="uploadBtn">+ 上传</button>
+    </div>
+
+    <div class="filter-chips" id="filterChips"></div>
+
+    <div id="imageGrid" class="image-grid"></div>
+
+    <div class="comment-section">
+      <h3>留言板</h3>
+      <div class="comment-form">
+        <input type="text" id="imgCommentInput" placeholder="写一条留言……">
+        <button class="btn btn-accent btn-sm" onclick="addImgComment()">发送</button>
+      </div>
+      <div class="comment-list" id="imgComments"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="uploadModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('uploadModal')">X</button>
+    <h2>上传图像</h2>
+    <div class="form-group">
+      <label>图像文件</label>
+      <input type="file" id="imageFileInput" accept="image/*">
+    </div>
+    <div class="form-group">
+      <label>名称（用于搜索）</label>
+      <input type="text" id="imageNameInput" placeholder="给图像起个名字">
+    </div>
+    <div class="form-group">
+      <label>分类</label>
+      <select id="imageCategoryInput">
+        <option value="spring">春河</option>
+        <option value="star">星河</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>关键词（逗号分隔）</label>
+      <input type="text" id="imageKeywordsInput" placeholder="如: 风景, 夏天, 夕阳">
+    </div>
+    <div id="uploadError" style="color:#dc2626;font-size:0.85rem;margin-bottom:10px;display:none"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('uploadModal')">取消</button>
+      <button class="btn btn-primary" onclick="uploadImage()">上传</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('detailModal')">X</button>
+    <div class="img-detail" id="imageDetail"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="loginModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('loginModal')">X</button>
+    <h2>登录</h2>
+    <div class="form-group"><label>用户名</label><input type="text" id="loginUser" placeholder="输入用户名"></div>
+    <div class="form-group">
+      <label>开发者密钥 <span style="font-weight:400;color:var(--text-light)">（可选，输入后方可上传/编辑内容）</span></label>
+      <input type="password" id="loginDevKey" placeholder="输入开发者密钥">
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="loginAsGuest()">游客浏览</button>
+      <button class="btn btn-primary" onclick="login()">进入</button>
+    </div>
+    <p id="loginError" style="color:#dc2626;font-size:0.85rem;margin-top:10px;display:none"></p>
+  </div>
+</div>
+
+<footer>
+  <div class="container">universe of dzak &mdash; 所有数据存储在云端 Supabase</div>
+</footer>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* ================================================================
+   配置：替换为你的 Supabase 项目信息
+   ================================================================ */
+const SUPABASE_URL = 'https://wnrakpknwtrpufqiammy.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InducmFrcGtud3RycHVmcWlhbW15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNDk2NTIsImV4cCI6MjA5ODYyNTY1Mn0.nY_OMMs9PvZ0mLuCZ8NyouHob9tApX4RgCPkcWWyH0Q';
+const DEV_EMAIL = 'dev@dzak.local';
+
+/* ================================================================
+   Supabase REST 工具
+   ================================================================ */
+const SB_AUTH = SUPABASE_URL + '/auth/v1';
+const SB_REST = SUPABASE_URL + '/rest/v1';
+function sbHeaders() {
+  const h = { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' };
+  const token = localStorage.getItem('dzak_sb_token');
+  if (token) h['Authorization'] = 'Bearer ' + token;
+  return h;
+}
+
+async function sbSelect(table, opts) {
+  let url = SB_REST + '/' + table + '?select=*';
+  if (opts && opts.order) url += '&order=' + opts.order;
+  const r = await fetch(url, { headers: sbHeaders() });
+  if (!r.ok) throw new Error('查询失败: ' + r.status);
+  return r.json();
+}
+
+async function sbInsert(table, data) {
+  const r = await fetch(SB_REST + '/' + table, {
+    method: 'POST',
+    headers: { ...sbHeaders(), 'Prefer': 'return=representation' },
+    body: JSON.stringify(data)
+  });
+  if (!r.ok) { const e = await r.json(); throw new Error(e.message || '插入失败'); }
+  return r.json();
+}
+
+async function sbDelete(table, id) {
+  const r = await fetch(SB_REST + '/' + table + '?id=eq.' + id, {
+    method: 'DELETE',
+    headers: sbHeaders()
+  });
+  if (!r.ok) throw new Error('删除失败');
+}
+
+async function sbUpdate(table, id, data) {
+  const r = await fetch(SB_REST + '/' + table + '?id=eq.' + id, {
+    method: 'PATCH',
+    headers: { ...sbHeaders(), 'Prefer': 'return=representation' },
+    body: JSON.stringify(data)
+  });
+  if (!r.ok) { const e = await r.json(); throw new Error(e.message || '更新失败'); }
+  return r.json();
+}
+
+/* ====== Supabase Auth ====== */
+async function sbSignIn(password) {
+  const r = await fetch(SB_AUTH + '/token?grant_type=password', {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: DEV_EMAIL, password: password })
+  });
+  const d = await r.json();
+  if (d.access_token) {
+    localStorage.setItem('dzak_sb_token', d.access_token);
+    localStorage.setItem('dzak_sb_refresh', d.refresh_token);
+    return true;
+  }
+  return false;
+}
+
+async function sbRestoreSession() {
+  const rt = localStorage.getItem('dzak_sb_refresh');
+  if (!rt) return false;
+  const r = await fetch(SB_AUTH + '/token?grant_type=refresh_token', {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: rt })
+  });
+  const d = await r.json();
+  if (d.access_token) {
+    localStorage.setItem('dzak_sb_token', d.access_token);
+    localStorage.setItem('dzak_sb_refresh', d.refresh_token);
+    return true;
+  }
+  localStorage.removeItem('dzak_sb_token');
+  localStorage.removeItem('dzak_sb_refresh');
+  return false;
+}
+
+function sbSignOut() {
+  localStorage.removeItem('dzak_sb_token');
+  localStorage.removeItem('dzak_sb_refresh');
+}
+
+/* ================================================================
+   共享工具
+   ================================================================ */
+function getData(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch(e) { return d; } }
+function setData(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function now() { return new Date().toLocaleString('zh-CN'); }
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+const DEVELOPER_KEY = 'dzak2024';
+
+function getUsers() { return getData('dzak_users', []); }
+function setUsers(u) { setData('dzak_users', u); }
+function getSession() { return getData('dzak_session', { user: null, role: null }); }
+function setSession(s) { setData('dzak_session', s); }
+function currentUser() { const s = getSession(); return s.user; }
+function isDeveloper() { return getSession().role === 'developer'; }
+
+function updateBadge() {
+  const s = getSession();
+  if (!s.user) { document.getElementById('userBadge').textContent = '未登录'; return; }
+  document.getElementById('userBadge').textContent = s.role === 'developer' ? s.user + ' [开发]' : s.user + ' [访客]';
+}
+
+async function login() {
+  const user = document.getElementById('loginUser').value.trim();
+  const devKey = document.getElementById('loginDevKey').value.trim();
+  const err = document.getElementById('loginError');
+  if (!user) { err.textContent = '请输入用户名'; err.style.display = 'block'; return; }
+
+  const isDev = devKey === DEVELOPER_KEY;
+  if (isDev) {
+    const ok = await sbSignIn(devKey);
+    if (!ok) { err.textContent = '密钥验证失败'; err.style.display = 'block'; return; }
+  }
+
+  const users = getUsers();
+  users.push({ username: user, role: isDev ? 'developer' : 'guest' });
+  setUsers(users);
+  const role = isDev ? 'developer' : 'guest';
+  setSession({ user, role });
+  err.style.display = 'none';
+  closeModal('loginModal');
+  updateBadge();
+  refreshUI();
+  if (isDev) toast('开发者模式 · 可上传编辑内容', 'success');
+  else toast('游客模式 · 浏览中');
+}
+
+function loginAsGuest() {
+  setSession({ user: 'guest', role: 'guest' });
+  closeModal('loginModal');
+  updateBadge();
+  refreshUI();
+  toast('游客模式 · 浏览中');
+}
+
+function openLoginModal() {
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginDevKey').value = '';
+  document.getElementById('loginError').style.display = 'none';
+  openModal('loginModal');
+}
+
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+document.addEventListener('click', function(e) {
+  document.querySelectorAll('.modal-overlay.active').forEach(m => { if (e.target === m) m.classList.remove('active'); });
+});
+
+function toast(msg, type) {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg; c.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+function toggleNav() { document.getElementById('navLinks').classList.toggle('open'); }
+document.addEventListener('click', function(e) {
+  const nav = document.getElementById('navLinks');
+  const t = document.querySelector('.nav-toggle');
+  if (!nav.contains(e.target) && !t.contains(e.target)) nav.classList.remove('open');
+});
+
+/* ================================================================
+   图像 CRUD（通过 Supabase）
+   ================================================================ */
+async function getImages() {
+  try { return await sbSelect('images', { order: 'created_at.desc' }); }
+  catch(e) { console.error(e); return []; }
+}
+
+let currentFilter = 'all';
+
+function getUrlParam(name) {
+  const p = new URLSearchParams(window.location.search);
+  return p.get(name);
+}
+
+function initFilter() {
+  const cat = getUrlParam('cat');
+  if (cat === 'spring') currentFilter = 'spring';
+  else if (cat === 'star') currentFilter = 'star';
+  renderFilterChips();
+}
+
+function renderFilterChips() {
+  const chips = [
+    { key: 'all', label: '全部' },
+    { key: 'spring', label: '春河' },
+    { key: 'star', label: '星河' },
+  ];
+  document.getElementById('filterChips').innerHTML = chips.map(c =>
+    `<span class="chip${currentFilter === c.key ? ' active' : ''}" onclick="setFilter('${c.key}')">${c.label}</span>`
+  ).join('');
+}
+
+function setFilter(k) { currentFilter = k; renderFilterChips(); renderImages(); }
+
+async function renderImages() {
+  const q = document.getElementById('imageSearch').value.trim().toLowerCase();
+  let imgs = await getImages();
+
+  if (currentFilter !== 'all') imgs = imgs.filter(i => i.category === currentFilter);
+  if (q) {
+    imgs = imgs.filter(i =>
+      i.name.toLowerCase().includes(q) ||
+      (i.keywords || []).some(k => k.toLowerCase().includes(q))
+    );
+  }
+
+  const grid = document.getElementById('imageGrid');
+
+  if (!imgs.length) {
+    grid.innerHTML = '<div class="empty-state"><p>暂无图像，点击上方「上传」添加</p></div>';
+    return;
+  }
+
+  const dev = isDeveloper();
+  grid.innerHTML = imgs.map(img =>
+    `<div class="image-card">
+      <img src="${img.data_url}" alt="${escHtml(img.name)}" onclick="openDetail('${img.id}')">
+      <div class="info">
+        <div class="name">${escHtml(img.name)}</div>
+        <div class="tags">${img.category === 'spring' ? '春河' : '星河'}${(img.keywords || []).length ? ' · ' + escHtml(img.keywords.join(', ')) : ''}</div>
+        <div class="actions">
+          <button class="btn btn-outline btn-sm" onclick="openDetail('${img.id}')">查看</button>
+          ${dev ? `<button class="btn btn-danger btn-sm" onclick="deleteImage('${img.id}')">删除</button>` : ''}
+        </div>
+      </div>
+    </div>`
+  ).join('');
+}
+
+function openUploadModal() {
+  document.getElementById('imageFileInput').value = '';
+  document.getElementById('imageNameInput').value = '';
+  document.getElementById('imageKeywordsInput').value = '';
+  document.getElementById('uploadError').style.display = 'none';
+  openModal('uploadModal');
+}
+
+async function uploadImage() {
+  const file = document.getElementById('imageFileInput').files[0];
+  const name = document.getElementById('imageNameInput').value.trim();
+  const category = document.getElementById('imageCategoryInput').value;
+  const keywordsRaw = document.getElementById('imageKeywordsInput').value.trim();
+  const err = document.getElementById('uploadError');
+
+  if (!file) { err.textContent = '请选择图像文件'; err.style.display = 'block'; return; }
+  if (!name) { err.textContent = '请输入图像名称'; err.style.display = 'block'; return; }
+  if (file.size > 5 * 1024 * 1024) { err.textContent = '图像大小不能超过 5MB'; err.style.display = 'block'; return; }
+
+  const keywords = keywordsRaw ? keywordsRaw.split(',').map(k => k.trim()).filter(Boolean) : [];
+
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    try {
+      await sbInsert('images', {
+        name, category, keywords,
+        data_url: e.target.result,
+        time: now()
+      });
+      closeModal('uploadModal');
+      await renderImages();
+      toast('图像上传成功', 'success');
+    } catch(ex) {
+      err.textContent = '上传失败: ' + ex.message;
+      err.style.display = 'block';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function deleteImage(id) {
+  if (!confirm('确定删除该图像？')) return;
+  try {
+    await sbDelete('images', id);
+    await renderImages();
+    toast('图像已删除');
+  } catch(e) {
+    toast('删除失败: ' + e.message, 'error');
+  }
+}
+
+function openDetail(id) {
+  // 需要重新查询，因为 id 是 uuid，我们用最近一次 render 的数据
+  // 简便做法：从 Supabase 单条查询
+  (async function() {
+    const data = await sbSelect('images');
+    const img = data.find(i => i.id === id);
+    if (!img) return;
+    const kws = img.keywords || [];
+    document.getElementById('imageDetail').innerHTML =
+      `<img src="${img.data_url}" alt="${escHtml(img.name)}">
+       <div class="name">${escHtml(img.name)}</div>
+       <p style="color:var(--text-light);font-size:0.85rem;margin-top:4px">${img.category === 'spring' ? '春河' : '星河'}</p>
+       ${kws.length ? `<p style="color:var(--text-light);font-size:0.85rem;margin-top:4px">关键词: ${kws.map(k => escHtml(k)).join(' / ')}</p>` : ''}
+       <p style="color:var(--text-light);font-size:0.8rem;margin-top:2px">上传于 ${img.time}</p>`;
+    openModal('detailModal');
+  })();
+}
+
+/* ================================================================
+   留言（通过 Supabase comments 表）
+   ================================================================ */
+async function getImgComments() {
+  try {
+    const data = await sbSelect('comments', { order: 'created_at.desc' });
+    return data.filter(c => c.page === 'images');
+  } catch(e) { console.error(e); return []; }
+}
+
+async function renderImgComments() {
+  const list = document.getElementById('imgComments');
+  const comments = await getImgComments();
+  if (!comments.length) { list.innerHTML = '<div class="empty-state"><p>暂无留言</p></div>'; return; }
+  list.innerHTML = comments.map(c =>
+    `<div class="comment"><span class="user">${escHtml(c.user_name)}</span><span class="time">${c.time}</span><div class="text">${escHtml(c.text)}</div></div>`
+  ).join('');
+}
+
+async function addImgComment() {
+  const input = document.getElementById('imgCommentInput');
+  const text = input.value.trim();
+  if (!text) return;
+  try {
+    await sbInsert('comments', {
+      page: 'images',
+      user_name: currentUser() || '匿名',
+      text,
+      time: now()
+    });
+    input.value = '';
+    await renderImgComments();
+    toast('留言已发布', 'success');
+  } catch(e) {
+    toast('发布失败: ' + e.message, 'error');
+  }
+}
+
+/* ================================================================
+   UI 刷新
+   ================================================================ */
+function refreshUI() {
+  const dev = isDeveloper();
+  const btn = document.getElementById('uploadBtn');
+  if (btn) btn.style.display = dev ? '' : 'none';
+}
+
+/* ================================================================
+   初始化
+   ================================================================ */
+(async function init() {
+  await sbRestoreSession();
+  updateBadge();
+  initFilter();
+  await renderImages();
+  await renderImgComments();
+  refreshUI();
+})();
+</script>
+</body>
+</html>
