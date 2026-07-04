@@ -448,13 +448,14 @@ async function renderImgComments() {
 }
 
 async function addImgComment() {
+  if (!currentUser()) { toast('请先登录后再留言', 'error'); return; }
   const input = document.getElementById('imgCommentInput');
   const text = input.value.trim();
   if (!text) return;
   try {
     await sbInsert('comments', {
       page: 'images',
-      user_name: currentUser() || '匿名',
+      user_name: currentUser(),
       text,
       time: now()
     });

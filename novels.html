@@ -375,11 +375,12 @@ async function renderNovelComments() {
 }
 
 async function addNovelComment() {
+  if (!currentUser()) { toast('请先登录后再留言', 'error'); return; }
   const input = document.getElementById('novelCommentInput');
   const text = input.value.trim();
   if (!text) return;
   try {
-    await sbInsert('comments', { page: 'novels', user_name: currentUser() || '匿名', text, time: now() });
+    await sbInsert('comments', { page: 'novels', user_name: currentUser(), text, time: now() });
     input.value = '';
     await renderNovelComments();
     toast('留言已发布', 'success');

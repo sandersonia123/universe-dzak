@@ -278,10 +278,11 @@ async function renderHomeComments() {
 }
 
 async function addHomeComment() {
+  if (!currentUser()) { toast('请先登录后再留言', 'error'); return; }
   const input = document.getElementById('homeCommentInput');
   const text = input.value.trim();
   if (!text) return;
-  const user = currentUser() || '匿名';
+  const user = currentUser();
   try {
     await sbInsert('comments', { page: 'home', user_name: user, text, time: now() });
     input.value = '';
