@@ -369,9 +369,17 @@ async function renderNovelComments() {
   const list = document.getElementById('novelCommentsList');
   const comments = await getNovelComments();
   if (!comments.length) { list.innerHTML = '<div class="empty-state"><p>暂无留言</p></div>'; return; }
-  list.innerHTML = comments.map(c =>
-    `<div class="comment"><span class="user">${escHtml(c.user_name)}</span><span class="time">${c.time}</span><div class="text">${escHtml(c.text)}</div></div>`
-  ).join('');
+  const cur = currentUser();
+  list.innerHTML = comments.map(c => {
+    const mine = cur && c.user_name === cur;
+    return `<div class="comment"><span class="user">${escHtml(c.user_name)}</span><span class="time">${c.time}</span><div class="text">${escHtml(c.text)}</div>${mine ? '<div class="comment-actions"><button class="btn-comment-del" onclick="deleteComment(\'' + c.id + '\')">删除</button></div>' : ''}</div>`;
+  }).join('');
+}
+
+async function deleteComment(id) {
+  if (!confirm('确定删除这条留言？')) return;
+  try { await sbDelete('comments', id); await renderNovelComments(); toast('留言已删除'); }
+  catch(e) { toast('删除失败: ' + e.message, 'error'); }
 }
 
 async function addNovelComment() {
