@@ -85,7 +85,6 @@
       <input type="password" id="loginDevKey" placeholder="输入开发者密钥">
     </div>
     <div class="modal-footer" style="flex-wrap:wrap">
-      <button class="btn btn-ghost" onclick="loginAsGuest()">游客浏览</button>
       <button class="btn btn-primary" onclick="login()">进入</button>
     </div>
     <p id="loginError" style="color:#dc2626;font-size:0.85rem;margin-top:10px;display:none"></p>
@@ -226,6 +225,11 @@ async function login() {
   }
 
   const users = getUsers();
+  if (users.some(u => u.username === user)) {
+    err.textContent = '该用户名已被使用，请换一个';
+    err.style.display = 'block';
+    return;
+  }
   users.push({ username: user, role: isDev ? 'developer' : 'guest' });
   setUsers(users);
   const role = isDev ? 'developer' : 'guest';
@@ -238,7 +242,6 @@ async function login() {
   else toast('游客模式 · 浏览中');
 }
 
-function loginAsGuest() { setSession({ user: 'guest', role: 'guest' }); closeModal('loginModal'); updateBadge(); refreshUI(); toast('游客模式 · 浏览中'); }
 function openLoginModal() { document.getElementById('loginUser').value = ''; document.getElementById('loginDevKey').value = ''; document.getElementById('loginError').style.display = 'none'; openModal('loginModal'); }
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }

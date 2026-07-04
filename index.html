@@ -74,7 +74,6 @@
       <input type="password" id="loginDevKey" placeholder="输入开发者密钥">
     </div>
     <div class="modal-footer" style="flex-wrap:wrap">
-      <button class="btn btn-ghost" onclick="loginAsGuest()">游客浏览</button>
       <button class="btn btn-primary" onclick="login()">进入</button>
     </div>
     <p id="loginError" style="color:#dc2626;font-size:0.85rem;margin-top:10px;display:none"></p>
@@ -192,6 +191,11 @@ async function login() {
   }
 
   const users = getUsers();
+  if (users.some(u => u.username === user)) {
+    err.textContent = '该用户名已被使用，请换一个';
+    err.style.display = 'block';
+    return;
+  }
   users.push({ username: user, role: isDev ? 'developer' : 'guest' });
   setUsers(users);
   const role = isDev ? 'developer' : 'guest';
@@ -201,13 +205,6 @@ async function login() {
   updateBadge();
   if (isDev) toast('开发者模式 · 可上传编辑内容', 'success');
   else toast('游客模式 · 浏览中');
-}
-
-function loginAsGuest() {
-  setSession({ user: 'guest', role: 'guest' });
-  closeModal('loginModal');
-  updateBadge();
-  toast('游客模式 · 浏览中');
 }
 
 function openLoginModal() {
